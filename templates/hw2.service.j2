@@ -1,0 +1,12 @@
+[Unit]
+Description=Helloworld2
+Requires=network.target
+After=syslog.target network.target
+
+[Service]
+ExecStart=/usr/bin/flask run -h 0.0.0.0 -p {{ HW2_PORT }}
+Environment="CONFIG_PATH={{ HW2_CONFIG_PATH }}"
+Environment="FLASK_APP={{ HW2_DEPLOY_PATH }}/helloworld2/helloworld2.py"
+
+[Install]
+WantedBy=multi-user.target

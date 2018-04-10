@@ -1,0 +1,8 @@
+[supervisord]
+[program:hw2]
+command = /usr/bin/flask run -h 0.0.0.0 -p {{ HW2_PORT }}
+autostart = true
+startretries = 5
+startsecs = 5
+autorestart = unexpected
+environment = CONFIG_PATH={{ HW2_CONFIG_PATH }},FLASK_APP={{ HW2_DEPLOY_PATH }}/helloworld2/helloworld2.py

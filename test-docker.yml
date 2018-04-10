@@ -1,0 +1,9 @@
+- hosts: dansible_remote
+  connection: docker
+  handlers:
+    - include: 'handlers/main.yml'
+  vars_files:
+    - 'defaults/main.yml'
+    - 'vars/main.yml'
+  tasks:
+    - include: 'tasks/main.yml'

@@ -1,0 +1,104 @@
+---
+- debug: var=HW2_DEBUG verbosity=1
+
+- debug: var=HW2_TARBALL_URL verbosity=1
+- name: "Make sure GitHub is accessible"
+  local_action:
+    module: uri
+    url: "{{ HW2_TARBALL_URL }}"
+    status_code: 200
+  register: result
+  until: result.status == 200
+  retries: 3
+  delay: 1
+
+- name: Make sure local tmp path exists
+  local_action:
+    module: file
+    path: "{{ HW2_TMP_PATH }}"
+    state: directory
+
+- debug: var=HW2_TMP_PATH verbosity=1
+- name: "Download tarball from GitHub"
+  local_action:
+    module: get_url
+    url: "{{ HW2_TARBALL_URL }}"
+    dest: "{{ HW2_TMP_PATH }}/hw2.tgz"
+    mode: 0600
+
+- name: Make sure remote tmp path exists
+  file:
+    path: "{{ HW2_DEPLOY_PATH }}"
+    state: directory
+
+- debug: var=HW2_DEPLOY_PATH verbosity=1
+- name: "Copy tarball to remote and unpack it"
+  unarchive:
+    src: "{{ HW2_TMP_PATH }}/hw2.tgz"
+    dest: "{{ HW2_DEPLOY_PATH }}/"
+    mode: 0600
+
+
+- name: install yamllint to validate config
+  pip: name=yamllint state=present
+
+
+- debug: var=HW2_CONFIG_PATH verbosity=1
+- debug: var=HW2_CONFIG_NAME verbosity=1
+- debug: var=HW2_CONFIG_TZ verbosity=1
+- debug: var=HW2_CONFIG_TITLE verbosity=1
+- debug: var=HW2_CONFIG_SALUTATION verbosity=1
+- name: "Deploy config file to remote"
+  template:
+    src: templates/config.yml.j2
+    dest: "{{ HW2_CONFIG_PATH }}"
+    validate: "{{ HW2_YAMLLINT_PATH }} %s"
+
+
+- debug: var=HW2_PORT verbosity=1
+- debug: var=HW2_SERVICE_NAME verbosity=1
+- name: drop systemd service file
+  template:
+    src: templates/hw2.service.j2
+    dest: /etc/systemd/system/hw2.service
+
+
+- name: reload systemctl
+  command: systemctl daemon-reload
+  when: HW2_DOCKER_TEST == False
+
+- name: enable hw2 service
+  service:
+    name: hw2
+    enabled: yes
+  when: HW2_DOCKER_TEST == False
+
+
+
+
+
+
+- name: Install cron
+  package:
+    name: cronie
+    state: present
+
+- name: "DIRTY: set up cron restart workaround"
+  cron:
+    cron_file: /etc/cron.d/hw2_restart
+    user: root
+    job: systemctl restart hw2
+    hour: 12
+    minute: 34
+
+
+- name: Start hw2 (skipped during Docker-based tests)
+  service:
+    name: hw2
+    state: started
+  when: HW2_DOCKER_TEST == False
+
+- name: "Wait 300 seconds for port {{ HW2_PORT }} to open"
+  wait_for:
+    port: "{{ HW2_PORT }}"
+  when: HW2_DOCKER_TEST == False

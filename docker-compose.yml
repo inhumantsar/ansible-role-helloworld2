@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  remote_centos7:
+    container_name: remote_centos7
+    image: inhumantsar/ansible:centos7
+    command: "/bin/bash -c 'while true; do echo \"Ctrl-C to kill me\"; sleep 10; done'"
+    
+  remote_xenial:
+    container_name: remote_xenial
+    image: inhumantsar/ansible:xenial
+    command: "/bin/bash -c 'while true; do echo \"Ctrl-C to kill me\"; sleep 10; done'"
+
+  ansible:
+    container_name: dansible_host
+    image: inhumantsar/ansible:docker
+    volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - ./:/workspace
+    command: "/start.sh -c docker -e HW2_DOCKER_TEST=True -i remote_xenial,remote_centos7, test.yml"
